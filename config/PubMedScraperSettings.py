@@ -18,14 +18,14 @@ from nltk.tokenize import word_tokenize
 from nltk.tokenize import sent_tokenize
 import matplotlib.pyplot as plt
 ###You must generate an Entrez API key through myNCBI and enter here to use this package:
-Entrez.email = str(YOUREMAILHERE)
-Entrez.api_key = str(YOURAPIKEYHERE)
+Entrez.email = 'alexander.smith@mssm.edu'
+Entrez.api_key = '8f015d17da5ac2df68b84d558b46e5150508'
 
 baseDirectory = os.getcwd()
 dataDirectory = os.path.join(baseDirectory, 'Data/')
 indexDirectory = os.path.join(baseDirectory, 'Indexes/')
 geneDirectory = os.path.join(dataDirectory, 'GeneExpression/')
-resultDirectory = os.path.join(baseDirectory, 'spaCy_model062920/Results/')
+resultDirectory = os.path.join(baseDirectory, 'Results/')
 
 reanalyze = input("Re-analyzing previously used data? Enter True/False: ")
 

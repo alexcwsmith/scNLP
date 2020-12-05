@@ -22,8 +22,8 @@ from spacy.util import minibatch, compounding
 import nltk
 
 modelName = 'model062920'
-resultDirectory = '/home/smith/Smith_Scripts/NLP_GeneExpression/scNLP/spaCy_model062920/Results/'
-modelDirectory = '/home/smith/Smith_Scripts/NLP_GeneExpression/scNLP/spaCy_model062920/'
+resultDirectory = '/home/smith/Smith_Scripts/scNLP/Results/'
+modelDirectory = '/home/smith/Smith_Scripts/scNLP/model/spaCy_model062920/'
 print("\n Loading NLP model from " + modelDirectory)
 nlp = spacy.load(modelDirectory)
 nlp.max_length=20000000
