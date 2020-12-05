@@ -13,7 +13,7 @@ import os
 import time
 import nltk
 import gensim
-from PubMedScraperSettings import *
+from config.PubMedScraperSettings import *
 import PubMedScraperFunctions as pm
 from scNLP_NER import multiProcessTextMinimal
 from pathos.pools import ProcessPool
@@ -34,7 +34,7 @@ def countLitResults(cluster, rettype="full"):
     IDlist = []
     geneList = []
     countList = []
-    directory = os.path.join(resultDirectory, "papers/" + setName + "_papers/")
+    directory = os.path.join(resultDirectory, "papers/" + cluster + '_' + comparison + "_papers/")
     if rettype == "full":
         path = os.path.join(directory, "papers/")
     elif rettype == "abstract":

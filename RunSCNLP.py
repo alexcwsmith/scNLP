@@ -7,7 +7,6 @@ Created on Sun Jul  5 17:08:37 2020
 """
 
 import os
-
 os.chdir("/home/smith/Smith_Scripts/scNLP/")
 from config.PubMedScraperSettings import *
 import singleCellNLP as scn
@@ -15,11 +14,11 @@ from scipy import stats
 import statsmodels.api as sm
 
 # If you want to update the manifest file first:
-clusters = ["Cluster" + str(x) for x in range(3)]
+clusters = ["Cluster" + str(x) for x in range(4)]
 maniDf = scn.updateManifest(clusters, rettype="full")
 
 # Run NLP on current cluster:
-scn.runNLP(cluster, rettype="full", n_genes=25, copy=False, dlProcesses=3)
+scn.runNLP(cluster, rettype="full", n_genes=25, copy=True, dlProcesses=3)
 
 df = pd.DataFrame()
 

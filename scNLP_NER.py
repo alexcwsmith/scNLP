@@ -9,7 +9,7 @@ Created on Wed Jun 24 01:49:15 2020
 from __future__ import unicode_literals, print_function
 import pandas as pd
 import os
-from SpaCySettings import *
+from config.SpaCySettings import *
 
 
 def info(title):
