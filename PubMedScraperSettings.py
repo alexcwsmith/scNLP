@@ -18,8 +18,8 @@ from nltk.tokenize import word_tokenize
 from nltk.tokenize import sent_tokenize
 import matplotlib.pyplot as plt
 ###You must generate an Entrez API key through myNCBI and enter here to use this package:
-Entrez.email = 'alexander.smith@mssm.edu'
-Entrez.api_key = '8f015d17da5ac2df68b84d558b46e5150508'
+Entrez.email = str(YOUREMAILHERE)
+Entrez.api_key = str(YOURAPIKEYHERE)
 
 baseDirectory = os.getcwd()
 dataDirectory = os.path.join(baseDirectory, 'Data/')
