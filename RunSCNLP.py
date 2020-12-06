@@ -14,7 +14,7 @@ from scipy import stats
 import statsmodels.api as sm
 
 # If you want to update the manifest file first:
-clusters = ["Cluster" + str(x) for x in range(4)]
+clusters = ["Cluster" + str(x) for x in range(8)]
 maniDf = scn.updateManifest(clusters, rettype="full")
 
 # Run NLP on current cluster:
@@ -28,6 +28,7 @@ types = scn.concatFrequencies(clusters, category=category, save=True)
 catTypes = scn.filterConcatFrequencies(
     types, clusters, category=category, min_count=50, save=True
 )
+
 
 cat = pd.DataFrame()
 for cluster in clusters:

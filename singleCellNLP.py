@@ -677,6 +677,7 @@ def runNLP(
     newClusters=None,
     dlProcesses=3,
     nlpProcesses=13,
+    clear=False
 ):
     """
     Main NLP function. Performs named entity recognition on corpus of literature.
@@ -768,6 +769,8 @@ def runNLP(
     t = str(getCurrentTime())
     print("Pipeline finished at " + t)
 
+def clearVariables():
+    del globals()['setName']
 
 def concatFrequencies(clusters, category="Functions", save=False):
     """

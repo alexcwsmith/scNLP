@@ -27,14 +27,16 @@ indexDirectory = os.path.join(baseDirectory, 'Indexes/')
 geneDirectory = os.path.join(dataDirectory, 'GeneExpression/')
 resultDirectory = os.path.join(baseDirectory, 'Results/')
 
-reanalyze = input("Re-analyzing previously used data? Enter True/False: ")
+if 'setName' not in globals():
+    setName = input("Cluster & Condition to Analyze (e.g. Cluster4_MarkerGenes, or Cluster12_UpSaline): ")
+    cluster = setName.split('_')[0]
+    comparison = setName.split('_')[1]
+elif setName in globals():
+    cluster = setName.split('_')[0]
+    comparison = setName.split('_')[1]
 
-setName = input("Cluster & Condition to Analyze (e.g. Cluster4_MarkerGenes, or Cluster12_UpSaline): ")
-setName = str(setName)
-cluster = setName.split('_')[0]
-comparison = setName.split('_')[1]
-
-scanpyDataQ = input("Use default scanpy expression data? (Y/N) : ")
+if 'scanpyDataQ' not in globals():
+    scanpyDataQ = input("Use default scanpy expression data? (Y/N) : ")
 if scanpyDataQ == 'Y' or 'y':
     scanpyData = '/home/smith/Smith_Scripts/NLP_GeneExpression/scNLP/Data/DP_OCvsSaline_DiffExp_UpregulatedOC_t-test_leiden_3696genes.xlsx'
     print("Using scanpy data from: " + "\n" + scanpyData)
@@ -42,35 +44,34 @@ elif scanpyDataQ == 'N' or 'n':
     scanpyData = input("Enter path to gene expression .xlsx file: ")
 
 
-if reanalyze=='False' or reanalyze=='false' or reanalyze=='No' or reanalyze=='no':
-    if not os.path.exists(os.path.join(resultDirectory, setName + '_Results/')):
-        print("Creating result directories...")
-        os.mkdir(os.path.join(resultDirectory, setName + '_Results/'))
-    clusterDirectory = os.path.join(resultDirectory, setName + '_Results/')
-    
-    if not os.path.exists(resultDirectory):
-        os.mkdir(resultDirectory)
-    pubDirectory = resultDirectory
-    if not os.path.exists(os.path.join(pubDirectory, 'papers/' + setName + '_papers/')):
-        if not os.path.exists(os.path.join(pubDirectory, 'papers/')):
-            os.mkdir(os.path.join(pubDirectory, 'papers/'))
-        os.mkdir(os.path.join(pubDirectory, 'papers/' + setName + '_papers/'))
-    paperDirectory = os.path.join(pubDirectory, 'papers/' + setName + '_papers/')
-    if not os.path.exists(os.path.join(paperDirectory, 'papers/')):
-        os.mkdir(os.path.join(paperDirectory, 'papers/'))
-    if not os.path.exists(os.path.join(paperDirectory, 'titles/')):
-        os.mkdir(os.path.join(paperDirectory, 'titles/'))
-    titleDirectory = os.path.join(paperDirectory, 'titles/')
-    if not os.path.exists(os.path.join(paperDirectory, 'abstracts/')):
-        os.mkdir(os.path.join(paperDirectory, 'abstracts/'))
-    abstractDirectory = os.path.join(paperDirectory, 'abstracts/')
+if not os.path.exists(os.path.join(resultDirectory, setName + '_Results/')):
+    print("Creating result directories...")
+    os.mkdir(os.path.join(resultDirectory, setName + '_Results/'))
+clusterDirectory = os.path.join(resultDirectory, setName + '_Results/')
 
-elif reanalyze:
-    clusterDirectory = os.path.join(resultDirectory, cluster + '_' + comparison + '_Results/')
-    pubDirectory = resultDirectory
-    paperDirectory = os.path.join(pubDirectory, 'papers/' + setName + '_papers/')
-    titleDirectory = os.path.join(paperDirectory, 'titles/')
-    abstractDirectory = os.path.join(paperDirectory, 'abstracts/')
+if not os.path.exists(resultDirectory):
+    os.mkdir(resultDirectory)
+pubDirectory = resultDirectory
+if not os.path.exists(os.path.join(pubDirectory, 'papers/' + setName + '_papers/')):
+    if not os.path.exists(os.path.join(pubDirectory, 'papers/')):
+        os.mkdir(os.path.join(pubDirectory, 'papers/'))
+    os.mkdir(os.path.join(pubDirectory, 'papers/' + setName + '_papers/'))
+paperDirectory = os.path.join(pubDirectory, 'papers/' + setName + '_papers/')
+if not os.path.exists(os.path.join(paperDirectory, 'papers/')):
+    os.mkdir(os.path.join(paperDirectory, 'papers/'))
+if not os.path.exists(os.path.join(paperDirectory, 'titles/')):
+    os.mkdir(os.path.join(paperDirectory, 'titles/'))
+titleDirectory = os.path.join(paperDirectory, 'titles/')
+if not os.path.exists(os.path.join(paperDirectory, 'abstracts/')):
+    os.mkdir(os.path.join(paperDirectory, 'abstracts/'))
+abstractDirectory = os.path.join(paperDirectory, 'abstracts/')
+
+#elif reanalyze:
+#    clusterDirectory = os.path.join(resultDirectory, cluster + '_' + comparison + '_Results/')
+#    pubDirectory = resultDirectory
+#    paperDirectory = os.path.join(pubDirectory, 'papers/' + setName + '_papers/')
+#    titleDirectory = os.path.join(paperDirectory, 'titles/')
+#    abstractDirectory = os.path.join(paperDirectory, 'abstracts/')
 
 
 

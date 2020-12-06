@@ -19,7 +19,7 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.tokenize import sent_tokenize
 import matplotlib.pyplot as plt
-from PubMedScraperSettings import *
+from config.PubMedScraperSettings import *
 
 
 def info(title):

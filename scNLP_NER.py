@@ -17,9 +17,9 @@ def info(title):
 
 
 def getArgs():
-    from PubMedScraperSettings import cluster, comparison, clusterDirectory
-    from SpaCySettings import modelName
-
+    from config.PubMedScraperSettings import cluster, comparison, clusterDirectory
+    from config.SpaCySettings import modelName
+    
     return (cluster, comparison, clusterDirectory, modelName)
 
 
@@ -30,14 +30,6 @@ def multiProcessTextMinimal(textFile):
     ----------
     textFile : string
         Path to text file to process
-    setName : string
-        Name of data set for naming convention
-    iteration : int, optional
-        Iteration number for batch processing. The default is 0.
-    start : int
-        Character index to start processing, default 0.
-    end : int
-        Character index to end processing, default 10 million
 
     Returns
     -------
