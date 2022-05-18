@@ -19,7 +19,7 @@ clusters = ["Cluster" + str(x) for x in range(clu)]
 maniDf = scn.updateManifest(clusters, rettype="full")
 
 # Run NLP on current cluster:
-scn.runNLP(cluster, rettype="full", n_genes=25, copy=True, dlProcesses=3)
+scn.runNLP(cluster, rettype="full", n_genes=25, copy=False, dlProcesses=3)
 
 # Downstream analysis:
 category = "Physio"  # NER recognized categories: Physio, Label (region), NT, CellType
@@ -28,7 +28,6 @@ types = scn.concatFrequencies(clusters, category=category, save=True)
 catTypes = scn.filterConcatFrequencies(
     types, category=category, min_count=50, save=True
 )
-
 
 cat = pd.DataFrame()
 for cluster in clusters:

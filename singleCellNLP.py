@@ -131,6 +131,8 @@ def copyLit(genes, rettype="full", copyData=False):
     rettype (optional): string, 'full' or 'abstract'
     copyData (optional): boolean, whether to copy the NLP result data in addition to literature results
     """
+    if cluster==0:
+        return genes, []
     if copyData == True:
         maniDf = pd.read_excel(
             os.path.join(

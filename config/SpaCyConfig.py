@@ -20,13 +20,13 @@ import random
 from pathlib import Path
 from spacy.util import minibatch, compounding
 import nltk
-import utils.scNLP_initNewProject as aux
+import utils.auxiliary as aux
 
 new=False
 
 if not new:
-    configPath = '/home/smith/scNLP/spaCy_geneExpression-May12-2022/config.yaml'
-    cfg=aux.read_config(configPath)
+    configPath = '/home/smith/scNLP/spaCy_geneExpression-May18-2022/config.yaml'
+    cfg=aux.readConfig(configPath)
 elif new:
     projectName='spaCy_geneExpression'
     projectPath=os.getcwd()
