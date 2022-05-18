@@ -11,6 +11,8 @@ examples/*
 examples/.DS_Store
 examples/*
 train/output*/
+model/*
+
 
 =======
 # Tensorflow checkpoints
