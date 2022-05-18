@@ -1,0 +1,29 @@
+name: spacyGPU
+channels:
+  - conda-forge
+  - anaconda
+  - bioconda
+  - defaults
+  - pytorch
+dependencies:
+  - matplotlib
+  - biopython
+  - spyder
+  - pandas
+  - gensim
+  - statsmodels
+  - entrez-direct
+  - spacy-transformers
+  - pathos
+  - python=3.8
+  - spacy=3.2.4
+  - nltk
+  - ipywidgets
+  - openpyxl
+  - torchvision
+  - pytorch=1.8
+  - ruamel
+  - ruamel.yaml
+  - ruamel.yaml.clib
+  - cupy
+#constraining python to 3.8 is the key for getting the GPU to work, as pytorch is not compatible with py 3.9+
