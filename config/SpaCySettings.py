@@ -7,7 +7,7 @@ Created on Wed May 27 09:36:29 2020
 """
 from __future__ import unicode_literals, print_function
 import spacy
-from scispacy.abbreviation import AbbreviationDetector
+#from scispacy.abbreviation import AbbreviationDetector
 from gensim import models
 from collections import Counter
 from string import punctuation
@@ -21,9 +21,9 @@ from pathlib import Path
 from spacy.util import minibatch, compounding
 import nltk
 
-modelName = 'model062920'
-resultDirectory = '/home/smith/Smith_Scripts/scNLP/Results/'
-modelDirectory = '/home/smith/Smith_Scripts/scNLP/model/spaCy_model062920/'
+modelName = 'model051022'
+resultDirectory = '/home/smith/scNLP/model/model051022/Results'
+modelDirectory = '/home/smith/scNLP/model/model051022/output/model-best'
 print("\n Loading NLP model from " + modelDirectory)
 nlp = spacy.load(modelDirectory)
 nlp.max_length=20000000

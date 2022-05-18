@@ -9,16 +9,17 @@ Created on Wed Jun 24 01:49:15 2020
 from __future__ import unicode_literals, print_function
 import pandas as pd
 import os
-from config.SpaCySettings import *
-
+if os.getcwd()!='/home/smith/scNLP':
+    os.chdir('/home/smith/scNLP/')
+from config.SpaCyConfig import *
 
 def info(title):
-    print(title, "processID:", os.getpid())
+    print("processID:", os.getpid(), title)
 
 
 def getArgs():
-    from config.PubMedScraperSettings import cluster, comparison, clusterDirectory
-    from config.SpaCySettings import modelName
+    from config.PubMedScraperUtils import cluster, comparison, clusterDirectory
+    from config.SpaCyConfig import modelName
     
     return (cluster, comparison, clusterDirectory, modelName)
 
@@ -57,6 +58,8 @@ def multiProcessTextMinimal(textFile):
     print("Saving results to " + clusterDirectory)
     t = str(getCurrentTime())
     nlp.max_length = 20000000
+    if not end:
+        end=nlp.max_length
     with open(textFile, "r+") as f:
         testText = f.read()
         f.close()
@@ -70,6 +73,10 @@ def multiProcessTextMinimal(textFile):
         + " through "
         + str(end)
     )
+    if len(testText)>end:
+        diff = len(testText)-end
+        perc = round((1-(diff/len(testText)))*100, 0)
+        print("Cutting out " + str(diff) + " characters (" + str(perc)+"%)")
     text = testText[start:end]
     doc = nlp(text)
     t = str(getCurrentTime())
@@ -93,7 +100,7 @@ def multiProcessTextMinimal(textFile):
             + cluster
             + "/"
             + setName
-            + "_NER_Results_Filtered_Sentences.xlsx",
+            + "_NER_Filtered_Sentences.xlsx",
         )
     )
 
@@ -125,31 +132,31 @@ def multiProcessTextMinimal(textFile):
         funcs.to_excel(
             os.path.join(
                 clusterDirectory,
-                "Functions_" + cluster + "/" + setName + "NER_Functions.xlsx",
+                "Functions_" + cluster + "/" + setName + "_NER_Functions.xlsx",
             )
         )
         regions.to_excel(
             os.path.join(
                 clusterDirectory,
-                "Regions_" + cluster + "/" + setName + "NER_Regions.xlsx",
+                "Regions_" + cluster + "/" + setName + "_NER_Regions.xlsx",
             )
         )
         NTs.to_excel(
             os.path.join(
                 clusterDirectory,
-                "NTs_" + cluster + "/" + setName + "NER_Neurotransmitters.xlsx",
+                "NTs_" + cluster + "/" + setName + "_NER_Neurotransmitters.xlsx",
             )
         )
         CTs.to_excel(
             os.path.join(
                 clusterDirectory,
-                "CellTypes_" + cluster + "/" + setName + "NER_CellTypes.xlsx",
+                "CellTypes_" + cluster + "/" + setName + "_NER_CellTypes.xlsx",
             )
         )
         phys.to_excel(
             os.path.join(
                 clusterDirectory,
-                "Physio_" + cluster + "/" + setName + "NER_Physio.xlsx",
+                "Physio_" + cluster + "/" + setName + "_NER_Physio.xlsx",
             )
         )
     t = str(getCurrentTime())

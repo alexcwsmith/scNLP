@@ -10,10 +10,10 @@ from __future__ import unicode_literals, print_function
 import numpy as np
 import pandas as pd
 import os
+import glob
 import time
 import nltk
 import gensim
-from config.PubMedScraperSettings import *
 import PubMedScraperFunctions as pm
 from scNLP_NER import multiProcessTextMinimal
 from pathos.pools import ProcessPool
@@ -21,6 +21,21 @@ import shutil
 import scipy.stats as stats
 import statsmodels.api as sm
 
+from config.PubMedScraperUtils import resultDirectory, setName, clusterDirectory, paperDirectory, abstractDirectory, scanpyData
+from utils.auxiliary import readConfig
+from config.SpaCyConfig import projectPath
+cfg = readConfig(os.path.join(projectPath, 'config.yaml'))
+searchTerms=cfg['searchTerms']
+cluster=setName.split('_')[0]
+comparison=setName.split('_')[1]
+modelName=cfg['projectName']
+n_papers=cfg['n_papers']
+
+def getDir(directory, ext=None):
+    if ext:
+        return [os.path.join(directory, x) for x in os.listdir(directory) if x.endswith(ext)]
+    elif not ext:
+        return [os.path.join(directory, x) for x in os.listdir(directory)]
 
 def countLitResults(cluster, rettype="full"):
     """
@@ -34,36 +49,33 @@ def countLitResults(cluster, rettype="full"):
     IDlist = []
     geneList = []
     countList = []
-    directory = os.path.join(resultDirectory, "papers/" + cluster + '_' + comparison + "_papers/")
-    if rettype == "full":
-        path = os.path.join(directory, "papers/")
-    elif rettype == "abstract":
-        path = os.path.join(directory, "abstracts/")
+    if rettype == 'full':
+        path = os.path.join(resultDirectory, 'papers', cluster+'_'+comparison+'_papers', 'papers')
+    elif rettype == 'abstract':
+        path = os.path.join(resultDirectory, 'papers', cluster+'_'+comparison+'_papers', 'abstracts')
     dirs = os.listdir(path)
     for item in dirs:
         fullpath = os.path.join(path, item)
         if os.path.isdir(fullpath):
-            files = os.listdir(fullpath)
+            files = getDir(fullpath, ext='fulltext.txt')
             count = len(files)
             geneList.append(item)
             countList.append(count)
             for file in files:
-                ID = file.split("_")[0]
+                f = os.path.basename(file)
+                ID = f.split("_")[0]
                 IDlist.append(ID)
+    IDlist = list(set(IDlist))
     IDdf = pd.DataFrame(IDlist)
     IDdf.columns = ["PMCID"]
-    IDdf = IDdf.drop_duplicates(keep="first")
-    IDdf = IDdf.loc[IDdf["PMCID"] != "CombinedFullTexts.txt"]
-    IDdf = IDdf.loc[IDdf["PMCID"] != "skippedFullTexts.txt"]
-    IDdf = IDdf.loc[IDdf["PMCID"] != "null"]
-    IDdf["cluster"] = cluster + "_" + comparison
+    IDdf["cluster"] = setName
     countDf = pd.DataFrame(data=[geneList, countList]).T
     countDf.columns = ["gene", "retrievedResults"]
     countDf["cluster"] = cluster
     countDf.to_excel(
-        os.path.join(directory, setName + "_RetreivedLitResults_Manifest.xlsx")
+        os.path.join(paperDirectory, setName + "_RetreivedLitResults_Manifest.xlsx")
     )
-    IDdf.to_excel(os.path.join(directory, setName + "_RetreivedPMCIDs_Manifest.xlsx"))
+    IDdf.to_excel(os.path.join(paperDirectory, setName + "_RetreivedPMCIDs_Manifest.xlsx"))
     return (IDdf, countDf)
 
 
@@ -79,28 +91,33 @@ def updateManifest(newClusters, rettype="full", IDs=False):
     """
     maniDf = pd.DataFrame()
     for cluster in newClusters:
-        if rettype == "full":
-            IDdf, countDf = countLitResults(cluster)
-        elif rettype == "abstract":
-            IDdf, countDf = countLitResults(cluster, rettype="abstract")
-        if not IDs:
-            maniDf = pd.concat([maniDf, countDf], axis=0)
-            maniDf = maniDf.sort_values(by="cluster", ascending=True)
-            maniDf = maniDf.drop_duplicates(keep="first")
-            maniDf.to_excel(
-                os.path.join(
-                    resultDirectory, "CombinedGeneManifest_" + comparison + ".xlsx"
+        cluResults = glob.glob(os.path.join(resultDirectory, cluster+'*'+'/'))
+        if len(cluResults)==0:
+            print("No results found for " + str(cluster) + ", skipping...")
+            pass
+        else:
+            if rettype == "full":
+                IDdf, countDf = countLitResults(cluster)
+            elif rettype == "abstract":
+                IDdf, countDf = countLitResults(cluster, rettype="abstract")
+            if not IDs:
+                maniDf = pd.concat([maniDf, countDf], axis=0)
+                maniDf = maniDf.sort_values(by="cluster", ascending=True)
+                maniDf = maniDf.drop_duplicates(keep="first")
+                maniDf.to_excel(
+                    os.path.join(
+                        resultDirectory, "CombinedGeneManifest_" + comparison + ".xlsx"
+                    )
                 )
-            )
-        elif IDs:
-            maniDf = pd.concat([maniDf, IDdf], axis=0)
-            maniDf = maniDf.sort_values(by="cluster", ascending=True)
-            maniDf = maniDf.drop_duplicates(keep="first")
-            maniDf.to_excel(
-                os.path.join(
-                    resultDirectory, "CombinedPMCIDManifest_" + comparison + ".xlsx"
+            elif IDs:
+                maniDf = pd.concat([maniDf, IDdf], axis=0)
+                maniDf = maniDf.sort_values(by="cluster", ascending=True)
+                maniDf = maniDf.drop_duplicates(keep="first")
+                maniDf.to_excel(
+                    os.path.join(
+                        resultDirectory, "CombinedPMCIDManifest_" + comparison + ".xlsx"
+                    )
                 )
-            )
     return maniDf
 
 
@@ -141,108 +158,42 @@ def copyLit(genes, rettype="full", copyData=False):
             incGenes.append(item)
     lz = list(zip(cGenes, cluList))
     for pair in lz:
-        if rettype == "full":
-            try:
-                src = os.path.join(
-                    resultDirectory,
-                    "papers/"
-                    + pair[1]
-                    + "_"
-                    + comparison
-                    + "_papers/papers/"
-                    + pair[0]
-                    + "/CombinedFullTexts.txt",
-                )
-            except FileNotFoundError:
-                src = os.path.join(
-                    resultDirectory,
-                    "papers/"
-                    + pair[1]
-                    + "_"
-                    + comparison
-                    + "_papers/papers/"
-                    + pair[0]
-                    + "/CombinedFullTexts.txt",
-                )
-            targDir = os.path.join(targetDirectory, pair[0] + "/")
-            targFile = os.path.join(targetDirectory, pair[0] + "/CombinedFullTexts.txt")
-            if not os.path.exists(targDir):
-                os.mkdir(targDir)
-            else:
-                print("Path already exists:", targDir)
-        elif rettype == "abstract":
-            try:
-                src = os.path.join(
-                    resultDirectory,
-                    "papers/"
-                    + pair[1]
-                    + "_"
-                    + comparison
-                    + "_papers/abstracts/"
-                    + pair[0]
-                    + "/CombinedFullTexts.txt",
-                )
-            except FileNotFoundError:
-                src = os.path.join(
-                    resultDirectory,
-                    "papers/"
-                    + pair[1]
-                    + "_"
-                    + comparison
-                    + "_papers/abstracts/"
-                    + pair[0]
-                    + "/CombinedFullTexts.txt",
-                )
-            targDir = os.path.join(targetDirectory, pair[0] + "/")
-            targFile = os.path.join(targetDirectory, pair[0] + "/CombinedFullTexts.txt")
-            if not os.path.exists(targDir):
-                os.mkdir(targDir)
-            else:
-                print("Path already exists:", targDir)
-        shutil.copyfile(src, targFile)
+        if rettype == 'full':
+            tp = 'papers'
+        elif rettype=='abstracts':
+            tp = 'abstracts'
+        src = os.path.join(
+            resultDirectory,
+            "papers",
+            '_'.join([pair[1], comparison, tp]),
+            'papers',
+            pair[0],
+            'CombinedFullTexts.txt',
+        )
+        targDir = os.path.join(targetDirectory, pair[0] + "/")
+        targFile = os.path.join(targetDirectory, pair[0] + "/CombinedFullTexts.txt")
+        if not os.path.exists(targDir):
+            os.mkdir(targDir)
+        else:
+            print("Path already exists:", targDir)
+        if not src==targFile:
+            shutil.copyfile(src, targFile)
     if copyData:
         copiedGeneData = []
-        cats = ["Regions", "Physio", "NTs", "CellTypes", "Functions", "Sentences"]
+        cats = {"NTs":"Neurotransmitters", "Sentences":"Filtered_Sentences", "Regions":"Regions", "Physio":"Physio", "CellTypes":"CellTypes", "Functions":"Functions"} 
         for pair in lz:
             dataDirectory = os.path.join(
                 resultDirectory, pair[1] + "_" + comparison + "_Results"
             )
             #        path = os.path.join(dataDirectory, pair[0])
             path = dataDirectory
-            for cat in cats:
+            for cat in list(cats.keys()):
                 dataPath = os.path.join(path, cat + "_" + pair[1])
-                if cat == "NTs":
-                    filePath = os.path.join(
-                        dataPath,
-                        pair[1]
-                        + "_"
-                        + comparison
-                        + "_model062920_"
-                        + pair[0]
-                        + "_Iteration0NER_Neurotransmitters.xlsx",
-                    )
-                elif cat == "Sentences":
-                    filePath = os.path.join(
-                        dataPath,
-                        pair[1]
-                        + "_"
-                        + comparison
-                        + "_model062920_"
-                        + pair[0]
-                        + "_Iteration0_NER_Results_Filtered_Sentences.xlsx",
-                    )
-                else:
-                    filePath = os.path.join(
-                        dataPath,
-                        pair[1]
-                        + "_"
-                        + comparison
-                        + "_model062920_"
-                        + pair[0]
-                        + "_Iteration0NER_"
-                        + cat
-                        + ".xlsx",
-                    )
+                filePath = os.path.join(
+                    dataPath,
+                    '_'.join([pair[1], comparison, modelName, pair[0]])
+                    + '_Iteration0_NER_'+cats[cat]+'.xlsx'
+                )
                 dataTargPath = os.path.join(
                     resultDirectory,
                     cluster + "_" + comparison + "_Results/" + cat + "_" + cluster,
@@ -250,33 +201,28 @@ def copyLit(genes, rettype="full", copyData=False):
                 if not os.path.exists(dataTargPath):
                     os.mkdir(dataTargPath)
                 dataTarg = filePath.replace(pair[1], cluster)
-                try:
-                    shutil.copyfile(filePath, dataTarg)
-                except FileNotFoundError:
-                    print("File not found" + str(filePath))
-                    pass
+                if not filePath==dataTarg:
+                    try:
+                        shutil.copyfile(filePath, dataTarg)
+                    except FileNotFoundError:
+                        print("File not found" + str(filePath))
+                        pass
             copiedGeneData.append(pair[0])
         with open(
             os.path.join(targetDirectory, pair[0] + "_CopySummary.txt"), "w+"
         ) as f:
-            if copyData == True:
-                f.write(
-                    pair[0]
-                    + " copied with data from "
-                    + pair[1]
-                    + " at: "
-                    + "\n"
-                    + str(src)
-                )
-            elif copyData == False:
-                f.write(
-                    pair[0]
-                    + " copied text only from "
-                    + pair[1]
-                    + " at: "
-                    + "\n"
-                    + str(src)
-                )
+            if copyData:
+                copyString = 'with data'
+            elif not copyData:
+                copyString = 'text only'
+            f.write(
+                pair[0]
+                + " copied " + copyString + " from "
+                + pair[1]
+                + " at: "
+                + "\n"
+                + str(src)
+            )
             f.close()
     return (incGenes, copiedGeneData)
 
@@ -303,7 +249,7 @@ def getCurrentTime():
     return current_time
 
 
-def retrieveAbstracts(genes, n_papers=1000, directory=paperDirectory, cluster=cluster):
+def retrieveAbstracts(genes, term2=searchTerms, n_papers=n_papers, directory=paperDirectory, cluster=cluster):
     """
     Retrieve abstracts from PubMedCentral
 
@@ -314,45 +260,26 @@ def retrieveAbstracts(genes, n_papers=1000, directory=paperDirectory, cluster=cl
     directory (optional): directory to save, default paperDirectory
     cluster (optional): cluster to search, default current working cluster
     """
+    print("Using search terms " + str(term2))
     geneIDlist = []
     for gene in genes:
-        IDs_opioid = pm.findPMCIDs(gene + " opioid", results=(n_papers * 2))
-        IDs_psych = pm.findPMCIDs(gene + " psychiatric", results=(n_papers * 2))
-        IDs = pm.findPMCIDs(gene + " brain", results=(n_papers * 2))
-        if len(os.listdir(os.path.join(paperDirectory, "abstracts/" + gene + "/"))) < (
-            n_papers + 3
-        ):
-            pm.getFullTextsGene(
-                IDs_opioid,
-                directory=directory,
-                gene=gene,
-                results=n_papers,
-                start=0,
-                end=None,
-            )
-        if len(os.listdir(os.path.join(paperDirectory, "abstracts/" + gene + "/"))) < (
-            n_papers + 3
-        ):
-            pm.getFullTextsGene(
-                IDs_psych,
-                directory=directory,
-                gene=gene,
-                results=n_papers,
-                start=0,
-                end=None,
-            )
-        if len(os.listdir(os.path.join(paperDirectory, "abstracts/" + gene + "/"))) < (
-            n_papers + 3
-        ):
-            pm.getFullTextsGene(
-                IDs, directory=directory, gene=gene, results=n_papers, start=0, end=None
-            )
-        geneIDlist.extend(IDs)
+        for term in term2:
+            IDs = pm.findPMCIDs(gene, term2=term, results=(n_papers * 2))
+            if len(getDir(os.path.join(paperDirectory, "abstracts", gene), ext='fulltext.txt')) < n_papers:
+                pm.getFullTextsGene(
+                    IDs,
+                    directory=directory,
+                    gene=gene,
+                    results=n_papers,
+                    start=0,
+                    end=None,
+                )
+                geneIDlist.extend(IDs)
     IDdf = pd.DataFrame(geneIDlist)
     IDdf.to_excel(os.path.join(directory, cluster + "_PMCIDlist.xlsx"))
 
 
-def retrieveLiterature(genes, n_papers=50, directory=paperDirectory, cluster=cluster):
+def retrieveLiterature(genes, term2=searchTerms, n_papers=n_papers, directory=paperDirectory, cluster=cluster):
     """
     Retrieve full texts and abstracts from PubMedCentral
 
@@ -363,80 +290,42 @@ def retrieveLiterature(genes, n_papers=50, directory=paperDirectory, cluster=clu
     directory (optional): directory to save, default paperDirectory
     cluster (optional): cluster to search, default current working cluster
     """
+    print("Using search terms " + str(term2))
     geneIDlist = []
     for gene in genes:
-        IDs_opioid = pm.findPMCIDs(gene + " opioid", results=500)
-        IDs_psych = pm.findPMCIDs(gene + " psychiatric", results=500)
-        IDs = pm.findPMCIDs(gene + " brain", results=500)
-        if len(os.listdir(os.path.join(paperDirectory, "papers/" + gene + "/"))) < (
-            n_papers + 3
-        ):
-            pm.getFullTextsGene(
-                IDs_opioid,
-                directory=directory,
-                gene=gene,
-                results=n_papers,
-                start=0,
-                end=None,
-            )
-        if len(os.listdir(os.path.join(paperDirectory, "papers/" + gene + "/"))) < (
-            n_papers + 3
-        ):
-            pm.getFullTextsGene(
-                IDs_psych,
-                directory=directory,
-                gene=gene,
-                results=n_papers,
-                start=0,
-                end=None,
-            )
-        if len(os.listdir(os.path.join(paperDirectory, "papers/" + gene + "/"))) < (
-            n_papers + 3
-        ):
-            pm.getFullTextsGene(
-                IDs, directory=directory, gene=gene, results=n_papers, start=0, end=None
-            )
-        geneIDlist.extend(IDs)
+        for term in term2:
+            IDs = pm.findPMCIDs(gene, term2=term, results=500)
+            if len(getDir(os.path.join(paperDirectory, "papers", gene), ext='fulltext.txt')) < n_papers:
+                pm.getFullTextsGene(
+                    IDs,
+                    directory=directory,
+                    gene=gene,
+                    results=n_papers,
+                    start=0,
+                    end=None,
+                )
+                geneIDlist.extend(IDs)
     IDdf = pd.DataFrame(geneIDlist)
     IDdf.to_excel(os.path.join(directory, cluster + "_PMCIDlist.xlsx"))
 
 
-def _multiRetrieveLiterature(gene):
-    info("Retrieving literature for " + str(gene))
+def _multiRetrieveLiterature(gene, terms=searchTerms):
+   # info("Retrieving literature for " + str(gene))
     n_papers = 50
     directory = paperDirectory
     geneIDlist = []
-    IDs_opioid = pm.findPMCIDs(gene + " opioid", results=500)
-    IDs_psych = pm.findPMCIDs(gene + " psychiatric", results=500)
-    IDs = pm.findPMCIDs(gene + " brain", results=500)
-    if len(os.listdir(os.path.join(paperDirectory, "papers/" + gene + "/"))) < (
-        n_papers + 3
-    ):
-        pm.getFullTextsGene(
-            IDs_opioid,
-            directory=directory,
-            gene=gene,
-            results=n_papers,
-            start=0,
-            end=None,
-        )
-    if len(os.listdir(os.path.join(paperDirectory, "papers/" + gene + "/"))) < (
-        n_papers + 3
-    ):
-        pm.getFullTextsGene(
-            IDs_psych,
-            directory=directory,
-            gene=gene,
-            results=n_papers,
-            start=0,
-            end=None,
-        )
-    if len(os.listdir(os.path.join(paperDirectory, "papers/" + gene + "/"))) < (
-        n_papers + 3
-    ):
-        pm.getFullTextsGene(
-            IDs, directory=directory, gene=gene, results=n_papers, start=0, end=None
-        )
+    for term in terms:
+        info("Retrieving literature for '" + str(gene) + " " + str(term)+"'")
+        IDs = pm.findPMCIDs(gene, term2=term, results=500)
+        if len(getDir(os.path.join(paperDirectory, "papers", gene), ext='fulltext.txt')) < n_papers:
+            pm.getFullTextsGene(
+                IDs,
+                directory=directory,
+                gene=gene,
+                results=n_papers,
+                start=0,
+                end=None,
+            )
     geneIDlist.extend(IDs)
     IDdf = pd.DataFrame(geneIDlist)
     IDdf["gene"] = gene
@@ -446,53 +335,26 @@ def _multiRetrieveLiterature(gene):
     )
 
 
-def multiRetrieveLiterature(genes, processes=3):
+def multiRetrieveLiterature(genes, terms=searchTerms, processes=3):
+    terms=[terms]*len(genes)
     pool = ProcessPool(nodes=processes)
-    pool.map(_multiRetrieveLiterature, genes)
+    pool.map(_multiRetrieveLiterature, genes, terms)
     pool.close()
     pool.join()
 
 
-def _multiRetrieveAbstracts(gene):
-    info("Retrieving literature for " + str(gene))
+def _multiRetrieveAbstracts(gene, terms=searchTerms):
     n_papers = 250
     directory = paperDirectory
     geneIDlist = []
-    IDs_opioid = pm.findPMCIDs(gene + " opioid", results=2000)
-    IDs_psych = pm.findPMCIDs(gene + " psychiatric", results=2000)
-    IDs = pm.findPMCIDs(gene + " brain", results=2000)
-    if (
-        len(os.listdir(os.path.join(paperDirectory, "abstracts/" + gene + "/")))
-        < n_papers
-    ):
-        pm.getAbstractsGene(
-            IDs_opioid,
-            directory=directory,
-            gene=gene,
-            results=n_papers,
-            start=0,
-            end=None,
-        )
-    if (
-        len(os.listdir(os.path.join(paperDirectory, "abstracts/" + gene + "/")))
-        < n_papers
-    ):
-        pm.getAbstractsGene(
-            IDs_psych,
-            directory=directory,
-            gene=gene,
-            results=n_papers,
-            start=0,
-            end=None,
-        )
-    if (
-        len(os.listdir(os.path.join(paperDirectory, "abstracts/" + gene + "/")))
-        < n_papers
-    ):
-        pm.getAbstractsGene(
-            IDs, directory=directory, gene=gene, results=n_papers, start=0, end=None
-        )
-    geneIDlist.extend(IDs)
+    for term in terms:
+        info("Retrieving literature for '" + str(gene) + " " + str(term)+"'")
+        IDs = pm.findPMCIDs(gene, term2=term, results=2000)
+        if len(getDir(os.path.join(paperDirectory, "abstracts", gene), ext='fulltext.txt')) < n_papers:
+            pm.getAbstractsGene(
+                IDs, directory=directory, gene=gene, results=n_papers, start=0, end=None
+            )
+        geneIDlist.extend(IDs)
     IDdf = pd.DataFrame(geneIDlist)
     IDdf["gene"] = gene
     IDdf["Cluster"] = cluster
@@ -501,9 +363,10 @@ def _multiRetrieveAbstracts(gene):
     )
 
 
-def multiRetrieveAbstracts(genes, processes=3):
+def multiRetrieveAbstracts(genes, terms=searchTerms, processes=3):
+    terms=[terms]*len(genes)
     pool = ProcessPool(nodes=processes)
-    pool.map(_multiRetrieveAbstracts, genes)
+    pool.map(_multiRetrieveAbstracts, genes, terms)
     pool.close()
     pool.join()
 
@@ -577,7 +440,7 @@ def combineAbstracts(abstractDirectory, overwrite=False, minSize=1e2):
 
 
 def info(title):
-    print(title, "processID:", os.getpid())
+    print("processID:", os.getpid(), title)
 
 
 def multiProcessLit(genes, directory, rettype="full", processes=13):
@@ -671,6 +534,7 @@ def reformatDf(df, name, cluster):
 def runNLP(
     cluster,
     n_genes=25,
+    searchTerms=searchTerms,
     rettype="full",
     update=False,
     copy=True,
@@ -686,6 +550,9 @@ def runNLP(
     ----------
     cluster: string, name of cluster
     n_genes (optional, default 100): int, number of genes
+    searchTerms : list of strings
+        List of strings to append to search for each gene. For example ['opioid', 'psychatric', 'brain'] will search for each gene
+        followed by each of those three words, in order, until it retrieves the number of results specified by n_papers in config file.
     rettype (optional, default 'full'): string, 'full' or 'abstract'
     update (optional, default False): boolean, whether to update manifest file before beginning
     copy (optional, default True): boolean, whether to copy literature using manifest
@@ -698,7 +565,7 @@ def runNLP(
     if comparison.startswith("Up"):
         genesList = genesDf["(2, " + str(clusterNum) + ")_n"].tolist()
         genes = genesList[:n_genes]
-    elif compariso.startswith("MarkerGenes"):
+    elif comparison.startswith("MarkerGenes"):
         genesList = genesDf[str(clusterNum) + "_n"].tolist()
         genes = genesList[:n_genes]
     elif comparison.startswith("Down"):
@@ -723,10 +590,10 @@ def runNLP(
         "Start Retrieving Literature at: " + t + " with " + str(dlProcesses) + " nodes"
     )
     if rettype == "full":
-        multiRetrieveLiterature(incGenes, processes=dlProcesses)
+        multiRetrieveLiterature(incGenes, terms=searchTerms, processes=dlProcesses)
         nullGenes = combineLiterature(paperDirectory)
     elif rettype == "abstract":
-        multiRetrieveAbstracts(incGenes, processes=dlProcesses)
+        multiRetrieveAbstracts(incGenes, terms=searchTerms, processes=dlProcesses)
         nullGenes = combineAbstracts(abstractDirectory)
     t = str(getCurrentTime())
     print(
@@ -859,7 +726,7 @@ def findUpregulatedEntities(
     """
     import scipy
 
-    resultDirectory = "/home/smith/Smith_Scripts/NLP_GeneExpression/spaCy_model062920/Results/UpOC_Abstract_Results"
+   # resultDirectory = "/home/smith/Smith_Scripts/NLP_GeneExpression/spaCy_model062920/Results/UpOC_Abstract_Results"
     clusterDirectory = os.path.join(
         resultDirectory, cluster + "_" + comparison + "_Results/"
     )

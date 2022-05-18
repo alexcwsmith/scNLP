@@ -18,8 +18,10 @@ from nltk.tokenize import word_tokenize
 from nltk.tokenize import sent_tokenize
 import matplotlib.pyplot as plt
 ###You must generate an Entrez API key through myNCBI and enter here to use this package:
-Entrez.email = str(YOUREMAILHERE)
-Entrez.api_key = str(YOURAPIKEYHERE)
+Entrez.email = 'smitaw@musc.edu'
+Entrez.api_key = '8f015d17da5ac2df68b84d558b46e5150508'
+
+searchTerms=['opioid', 'psychiatric', 'brain']
 
 baseDirectory = os.getcwd()
 dataDirectory = os.path.join(baseDirectory, 'Data/')
@@ -38,7 +40,7 @@ elif setName in globals():
 if 'scanpyDataQ' not in globals():
     scanpyDataQ = input("Use default scanpy expression data? (Y/N) : ")
 if scanpyDataQ == 'Y' or 'y':
-    scanpyData = '/home/smith/Smith_Scripts/NLP_GeneExpression/scNLP/Data/DP_OCvsSaline_DiffExp_UpregulatedOC_t-test_leiden_3696genes.xlsx'
+    scanpyData = '/home/smith/scNLP/config/DP_OCvsSaline_DiffExp_UpregulatedOC_t-test_leiden_3696genes.xlsx'
     print("Using scanpy data from: " + "\n" + scanpyData)
 elif scanpyDataQ == 'N' or 'n':
     scanpyData = input("Enter path to gene expression .xlsx file: ")
@@ -65,13 +67,4 @@ titleDirectory = os.path.join(paperDirectory, 'titles/')
 if not os.path.exists(os.path.join(paperDirectory, 'abstracts/')):
     os.mkdir(os.path.join(paperDirectory, 'abstracts/'))
 abstractDirectory = os.path.join(paperDirectory, 'abstracts/')
-
-#elif reanalyze:
-#    clusterDirectory = os.path.join(resultDirectory, cluster + '_' + comparison + '_Results/')
-#    pubDirectory = resultDirectory
-#    paperDirectory = os.path.join(pubDirectory, 'papers/' + setName + '_papers/')
-#    titleDirectory = os.path.join(paperDirectory, 'titles/')
-#    abstractDirectory = os.path.join(paperDirectory, 'abstracts/')
-
-
 
