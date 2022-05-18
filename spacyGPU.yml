@@ -1,0 +1,30 @@
+name: spacyGPU
+channels:
+  - conda-forge
+  - anaconda
+  - bioconda
+  - defaults
+  - pytorch
+dependencies:
+  - matplotlib
+  - biopython
+  - spyder
+  - pandas
+  - gensim
+  - statsmodels
+  - entrez-direct
+  - spacy-transformers
+  - pathos
+  - python=3.8
+  - spacy=3.2.4
+  - nltk
+  - ipywidgets
+  - openpyxl
+  - torchvision
+  - pytorch=1.8
+  - ruamel
+  - ruamel.yaml
+  - ruamel.yaml.clib
+  - cupy
+  - scikit-learn
+prefix: /home/smith/anaconda3/envs/spacyGPU
